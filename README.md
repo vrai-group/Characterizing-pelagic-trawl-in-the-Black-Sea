@@ -10,7 +10,7 @@ Two complementary R scripts are provided for identifying candidate dyads based o
 
 
 <div style="text-align: center;">
-    <img src="flowchart.png?raw=true" alt="Graphical Abstract" width="850" height="400" style="display: block; margin: 0 auto;"/>
+    <img src="flowchart.png?raw=true" alt="Graphical Abstract" height="400" style="display: block; margin: 0 auto;"/>
 </div>
 
 
@@ -19,16 +19,16 @@ Two complementary R scripts are provided for identifying candidate dyads based o
 ## File Descriptions
 
 - **`code1_trip_based_dyadic_extraction.R`**  
-  **Purpose :** Identifies dyads based on segmented trips between ports.
-  **Key steps :**
+  **Purpose :** Identifies dyads based on segmented trips between ports.</br>
+  **Key steps :**</br>
   - Spatial matching of vessel positions to port locations to identify trip segments.
   - Temporal dyadic reconstruction within trips.
   - Behavioral metric calculations (Proximity, DIh, DId, DItheta).
   - Candidate dyad selection and speed-based vessel classification.
 
 - **`code2_timestamp-based_approach.R`**  
-  **Purpose :** Dyadic extraction directly based on timestamp-level proximity, independent of trips.
-  **Key steps :**
+  **Purpose :** Dyadic extraction directly based on timestamp-level proximity, independent of trips.</br>
+  **Key steps :**</br>
   - Filters by nationality and speed threshold.
   - Exclude port proximity using haversine buffer.
   - Pairwise dyad construction for each timestamp.
@@ -56,25 +56,23 @@ library(mixtools)   # fallback EM, classic BIC (lower is better)
 library(stats)
 ```
 
-## Input Requirements
-
 ## Input Data
 
 - **AIS Data :** data frame named `black` with columns:  
   `MMSI`, `DATE.TIME..UTC.`, `LONGITUDE`, `LATITUDE`, `SPEED`, `COURSE`, `CALLSIGN`
 
-Note: `SPEED` is coerced to numeric; Turkish‑flagged vessels are selected via `CALLSIGN` starting with `"TC"`.
+  Note: `SPEED` is coerced to numeric; Turkish‑flagged vessels are selected via `CALLSIGN` starting with `"TC"`.
 
 - **Ports data :** data frame named `ports` with columns:  
   `lon`, `lat` (WGS84). Used to remove points within a buffer of each port.
 
-All geographic calculations use `geosphere::distHaversine` (meters). The script creates an `sf` layer (`crs = 4326`) only for convenience; all metric calculations remain in geographic coordinates (lon/lat).
+  All geographic calculations use `geosphere::distHaversine` (meters). The script creates an `sf` layer (`crs = 4326`) only for convenience; all metric calculations remain in geographic coordinates (lon/lat).
 
 ## Running Instructions
 
-**1.	Load AIS and port data into your R session.**
-**2.	Run either script line-by-line** in an R console or RStudio.
-**3.	Final outputs :**
+**1.	Load AIS and port data into your R session.**</br>
+**2.	Run either script line-by-line** in an R console or RStudio.</br>
+**3.	Final outputs :**</br>
   - A table of candidate dyads with coordination metrics.
   -	Vessel classifications based on speed.
   -	Optional: count of unique MMSIs involved in final dyads.
@@ -105,23 +103,15 @@ final_dyads <- add_vessel_class_to_dyads(candidate_dyads, vessel_classification)
 
 ### Timestamp-Based Approach (`code2`)
 
-```R
-ais_data <- fread("your_ais_data.csv")
-result_dyads <- identify_dyads_timestamp_based(ais_data)
-```
-
-> *Note: Code 2 is more robust to AIS gaps and was preferred in the study.*
-
-
 #### Workflow
-**1. Load & Clean AIS**
-**2. Coerce `SPEED` to numeric and **cap** large values (`<= speed_cap`).**
-**3. Keep Turkish‑flagged vessels (`CALLSIGN` starts with `"TC"`).**
-**4. Remove points within `port_buffer_km` kilometers of any port:**
+**1. Load & Clean AIS**</br>
+**2. Coerce `SPEED` to numeric and **cap** large values (`<= speed_cap`).**</br>
+**3. Keep Turkish‑flagged vessels (`CALLSIGN` starts with `"TC"`).**</br>
+**4. Remove points within `port_buffer_km` kilometers of any port:**</br>
 ```R   
    filter_ports(data, ports, buffer_km = port_buffer_km)
 ``` 
-**5. Build Dyads (All Timestamps)**
+**5. Build Dyads (All Timestamps)**</br>
 For each timestamp (`DATE.TIME..UTC.`) where `n > 1` vessels are present:
 - Enumerate all unordered pairs with `combn(MMSI, 2)`.
 - Join attributes for both vessels (`_1`, `_2` suffixes).
@@ -130,14 +120,14 @@ For each timestamp (`DATE.TIME..UTC.`) where `n > 1` vessels are present:
 The resulting table is de‑duplicated into `dyadic_results1` with columns:
 `MMSI1, MMSI2, T, Distance, Proximity, DIh, DId, DItheta, speed_diff`.
 
-**6. Candidate Dyads by Thresholds**
+**6. Candidate Dyads by Thresholds**</br>
 Filter dyads as:
 ```R 
 cand_all_ts <- dyadic_results1[
   Proximity > th_prox & DIh > th_dih & DId > th_did & DItheta > th_dith
 ]
 ```
-**7. Vessel Classification via Speed GMMs**
+**7. Vessel Classification via Speed GMMs**</br>
 - Build the **speed vector** for each MMSI present in candidate dyads.
 - **BEST** model selection: `mclustBIC` across `G ∈ {2,3,4}`; pick the model with **highest** BIC.  
   If `mclust` fails, fallback to `mixtools::normalmixEM` and select by **classic** BIC (lower is better).
@@ -147,7 +137,7 @@ cand_all_ts <- dyadic_results1[
   - `cls_best_all` (BIC‑selected best G in {2,3,4})
   - `cls_k4_all` (forced `G = 4`)
 
-**8. Merge Classifications → Final Dyads**
+**8. Merge Classifications → Final Dyads**</br>
 Join labels back to dyads and retain only pairs where both MMSIs are `pelagic_trawl`:
 - `final_candidate_gmm_best`
 - `final_candidate_gmm_k4`
@@ -165,10 +155,17 @@ Console summaries report counts of candidate dyads and unique MMSIs per strategy
 
 If you use this repository or the scripts code in your research, please cite our work as follows:
 
-Taner Yıldız, Nurdan Cömert, Adriano Mancini, Alessandro Galdelli, Anna Nora Tasetti</br> 
-"Characterizing pelagic trawl partnerships using coordination metrics and behavior classification in the Black Sea",
-2025
+Taner Yıldız, Nurdan Cömert, Adriano Mancini, Alessandro Galdelli, Anna Nora Tasetti, "Characterizing pelagic trawl partnerships using coordination metrics and behavior classification in the Black Sea", 2025
 
+BibTeX format:
+
+```bibtex
+@Article{Yıldız_2025,
+author={Yıldız, Taner and Cömert, Nurdan and Mancini, Adriano and Galdelli, Alessandro and Tasetti, Anna Nora},
+title={Characterizing pelagic trawl partnerships using coordination metrics and behavior classification in the Black Sea},
+journal={Ecological Informatics},
+year={2025}
+}
 
 
 
